@@ -4,6 +4,8 @@
 use move_binary_format::CompiledModule;
 use move_trace_format::format::MoveTraceBuilder;
 use move_vm_config::verifier::{MeterConfig, VerifierConfig};
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::{collections::HashSet, path::PathBuf, sync::Arc};
 use sui_protocol_config::ProtocolConfig;
 use sui_types::execution::ExecutionTiming;
@@ -180,7 +182,7 @@ impl executor::Executor for Executor {
         input_objects: CheckedInputObjects,
         pt: ProgrammableTransaction,
     ) -> Result<InnerTemporaryStore, ExecutionError> {
-        let mut tx_context = TxContext::new_from_components(
+        let tx_context = TxContext::new_from_components(
             &SuiAddress::default(),
             transaction_digest,
             &epoch_id,
@@ -189,12 +191,13 @@ impl executor::Executor for Executor {
             1,
             None,
         );
+        let tx_context = Rc::new(RefCell::new(tx_context));
         execute_genesis_state_update(
             store,
             protocol_config,
             metrics,
             &self.0,
-            &mut tx_context,
+            tx_context,
             input_objects,
             pt,
         )
